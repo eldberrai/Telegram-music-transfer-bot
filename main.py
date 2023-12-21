@@ -9,14 +9,14 @@ from yandex_music.exceptions import UnauthorizedError
 import vk_api
 from vk_api.audio import VkAudio
 
-bot = None
+bot = telebot.TeleBot('6927922735:AAHt-rBe92ea-w9tXTv7V8E5ExtpV-nu5Fs')
 yandex_token = None
 spotify_code = None
 sp = None
 user_info = None
 auth_manager = None
-SPOTIPY_CLIENT_ID = None
-SPOTIPY_CLIENT_SECRET = None
+SPOTIPY_CLIENT_ID = "ea6b481f724e48cfa6f51b42365040bb"
+SPOTIPY_CLIENT_SECRET = "be2ebb056395439fba3f746c62697746"
 SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:8080'
 transfer_link = None
 vk_login = None
