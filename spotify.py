@@ -1,10 +1,11 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth, SpotifyOauthError
 import os
+
 SPOTIPY_CLIENT_ID = None
 SPOTIPY_CLIENT_SECRET = None
-SPOTIPY_REDIRECT_URI = None
-SPOTIPY_SCOPE = None
+SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:8080'
+SPOTIPY_SCOPE = 'playlist-read-collaborative playlist-read-private playlist-modify-public playlist-modify-private'
 
 def login_inst():
     auth_manager = SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID,
@@ -37,11 +38,14 @@ def get_playlists(playlist_name, sp):
     needed_playlist = None
     user = sp.current_user()
     current_playlists = sp.user_playlists(user['id'])['items']
+
     playlist_with_items = []
     for playlist in current_playlists:
         if playlist['name'] == playlist_name:
             needed_playlist = playlist
+
             break
+
     for pl in sp.playlist_items(needed_playlist['id'])['items']:
         sing = ''
         for i in range(len(pl['track']['artists'])):
@@ -50,6 +54,7 @@ def get_playlists(playlist_name, sp):
                 sing += ', '
         playlist_with_items.append(
             sing + ' - ' + pl['track']['name'])
+    print(playlist_with_items)
     return playlist_with_items
 
 

@@ -28,12 +28,15 @@ def get_album_by_name(message, session, album_name):
     user_id = session.get_api().users.get()[0]['id']
     albums = vk_audio_for_albums.get_albums(user_id)
 
+    print(albums)
     for album in albums:
         if album['title'].lower() == album_name.lower():
             if album:
-                    get_songs_from_album(album, session)
-            else:
-               return ValueError
+                try:
+                    return get_songs_from_album(album, session)
+                except vk_api.exceptions.AccessDenied:
+                    return vk_api.exceptions.AccessDenied
+
 
 def get_songs_from_album(album, session):
     """Выводит все песни из плейлиста или альбома(пока только который создал сам человек)"""

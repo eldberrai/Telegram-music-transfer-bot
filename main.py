@@ -92,12 +92,12 @@ def spotify_reg(message):
     except SpotifyOauthError:
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова')
-        logger.error('Не получается залогиниться в Spotify')
+        logger.error('Couldnt log into spotify')
         bot.register_next_step_handler(message, main)
         return
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    logger.info('Залогинился в spotify')
+    logger.info('Logged into spotify')
     user_info = sp.current_user()
     print(user_info['display_name'])
     bot.send_message(message.chat.id, f"Привет, {user_info['display_name']}!")
@@ -183,9 +183,9 @@ def spotify_list(message):
                          f'Неверное название, попробуй снова \n'
                          f'Выбери, что хочешь сделать', reply_markup=markup)
         bot.register_next_step_handler(message, spotify_commands)
-        logger.warning('Плейлист не был найден в списке')
+        logger.warning('Couldnt find playlist in library')
         return
-    logger.info('Плейлист был найден в списке')
+    logger.info('Have found a playlist')
     for song in query:
         if len(file + song + '\n') > 1024:
             bot.send_message(message.chat.id, file)
@@ -209,14 +209,14 @@ def yandex_reg_for_spotify(message):
     try:
         Client(yandex_token).init()
     except UnauthorizedError:
-        logger.error('Не получается залогиниться в Yandex music')
+        logger.error('Couldnt log into Yandex music')
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова', repky_markup=markup)
         bot.register_next_step_handler(message, spotify_commands)
         return
-    logger.info('Залогинился в yandex music для использования с Spotify')
+    logger.info('Logged into yandex music for spotify')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     bot.send_message(message.chat.id, f'Выполнен вход в твой Yandex аккаунт.\n '
@@ -261,12 +261,12 @@ def spotify_to_yandex(message):
         bot.send_message(message.chat.id,
                          f'Ты ввел неверную ссылку, попробуй снова', reply_markup=markup)
         bot.register_next_step_handler(message, spotify_commands)
-        logger.warning('Нет плейлиста для переноса с spotify в yandex_music')
+        logger.warning('Couldnt find a playlist to transfer from spotify to yandex')
         return
 
     items_to_yandex = spotify.get_playlist_by_url(playlist_id, sp)
     not_available = yandexapi.list_to_yandex(name, items_to_yandex, yandex_token)
-    logger.info('Плейлист был был перенесен с Spotify  в yandex music')
+    logger.info('Have trasfered playlist from spotify to yandex')
     file = ''
     if len(not_available) != 0:
         for song in not_available:
@@ -301,7 +301,7 @@ def spotify_copy(message):
     name = user_input[0]
     tracks = user_input[1:]
     spotify.search_create_add(tracks, name, sp)
-    logger.info('Плейлист был добавлен в медиатеку Spotify')
+    logger.info('Have added a playlist to spotify')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     bot.send_message(message.chat.id,
@@ -324,12 +324,12 @@ def yandex_reg(message):
     except UnauthorizedError:
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова')
-        logger.error('Не получается залогиниться в Yandex music')
+        logger.error('Couldnt log intp yandex music')
         bot.register_next_step_handler(message, main)
         return
-    logger.info('Произведен вход в yandex music')
+    logger.info('Logged into yandex music')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-    item_1 = types.KeyboardButton("Скопировать Yandex плейлист")
+    item_1 = types.KeyboardButton("Создать Yandex плейлист")
     item_2 = types.KeyboardButton("Получить список песен")
     item_3 = types.KeyboardButton("Перенести в Spotify")
     item_4 = types.KeyboardButton("В главное меню")
@@ -342,7 +342,7 @@ def yandex_reg(message):
 def yandex_commands(message):
     global auth_manager
     """Здесь команды с функционалом, доступным для Spotify"""
-    if message.text == "Скопировать Yandex плейлист":
+    if message.text == "Создать Yandex плейлист":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
         bot.send_message(message.chat.id,
@@ -361,8 +361,19 @@ def yandex_commands(message):
         auth_manager, instruction = spotify.login_inst()
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
-        bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
-        bot.register_next_step_handler(message, spotify_reg_for_yandex)
+        if spotify_code:
+            try:
+                token_info = auth_manager.get_access_token(spotify_code)
+                bot.send_message(message.chat.id, f'Ты уже вошел в аккаунт \n'
+                                                  f'Ответным сообщением введи ссылку на Spotify плейлист, который хочешь перенести в Yandex'
+                                 , )
+                bot.register_next_step_handler(message, help_y_t_sp)
+            except SpotifyOauthError:
+                bot.send_message(message.chat.id, instruction, parse_mode='Markdown')
+                bot.register_next_step_handler(message, spotify_reg_for_yandex)
+        else:
+            bot.send_message(message.chat.id, instruction, parse_mode='Markdown')
+            bot.register_next_step_handler(message, spotify_reg_for_yandex)
     elif message.text == "В главное меню":
         hello_message(message)
 
@@ -382,20 +393,20 @@ def spotify_reg_for_yandex(message):
     except SpotifyOauthError:
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова')
-        logger.error('Не получается залогиниться в Spotify')
+        logger.error('Couldnt log into spotify')
         bot.register_next_step_handler(message, yandex_commands)
         return
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    logger.info('Произвден вход в spotify для работы с yandex music')
+    logger.info('Logged into spotify for work with yandex')
     user_info = sp.current_user()
 
-    bot.send_message(message.chat.id, f"Hello {user_info['display_name']}!")
+    bot.send_message(message.chat.id, f"Привет, {user_info['display_name']}!")
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     bot.send_message(message.chat.id, f'Выполнен вход в твой Spotify аккаунт.\n'
-                                      f'Введи ссылку на Yandexmusic плейлист, который хочешь перенести в Spotify\n'
+                                      f'Введи ссылку на Yandex music плейлист, который хочешь перенести в Spotify\n'
                      ,
                      reply_markup=markup)
     bot.register_next_step_handler(message, help_y_t_sp)
@@ -429,7 +440,7 @@ def yandex_copy(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     not_available = yandexapi.list_to_yandex(name, tracks, yandex_token)
-    logger.info('Плейлист был добавлен в коллекцию Yandex music')
+    logger.info('Have added new playlist to yandex music')
     file = ''
     if len(not_available) != 0:
         for song in not_available:
@@ -474,9 +485,9 @@ def yandex_to_spotify(message):
     transfer_list = yandex_to_list(transfer_link, yandex_token, message)
     if transfer_list is None:
         bot.register_next_step_handler(message, yandex_commands)
-        logger.warning('Плейлист не был перенесен на Spotify c yandex music')
+        logger.warning('Couldnt transfer a playlist from yandex to spotify')
         return
-    logger.info('Плейлист был перенесен на Spotify с yandex music')
+    logger.info('Have transferred a playlist from yandex to spotify')
     spotify.search_create_add(transfer_list, name, sp)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
@@ -493,7 +504,7 @@ def yandex_list(message):
     link = message.text
     file = ''
     for song in yandex_to_list(link, yandex_token, message):
-        logger.info('Плейлист был найден в коллекции yandex music')
+        logger.info('Have found a playlist in yandex music')
         if len(file + song + '\n') > 1024:
             bot.send_message(message.chat.id, file)
             file = song + '\n'
@@ -533,14 +544,14 @@ def yandex_to_list(link: str, token, message):
         bot.send_message(message.chat.id,
                          f'Ты ввел неверную ссылку, попробуйт снова.\n'
                          f'Нажми на кнопку "Перенести в spotify и повтори процедуру еще раз')
-        logger.warning('Предоставлена не та ссылка')
+        logger.warning('Invalid link for yandex music')
 
     except:
         bot.send_message(message.chat.id,
                          f'Нет прав для просмотра, попробуй залогиниться снова.\n'
                          f'Нажми на кнопку "Перенести в spotify и повтори процедуру еще раз')
         bot.register_next_step_handler(message, main)
-        logger.warning('Недостаточно прав для просмотра плейлиста Yandex music')
+        logger.warning('Have no access to yandex music playlist')
 
 
 ### Все для вк
@@ -575,7 +586,7 @@ def vk_reg(message):
     try:
         vk_session.auth()
     except vk_api.AuthError as error_msg:
-        logger.error('Не получается залогиниться в Vk')
+        logger.error('Couldnt log into VK')
         return
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
     item_2 = types.KeyboardButton("Получить список плейлистов")
@@ -605,7 +616,7 @@ def vk_commands(message):
 
         all_pl = []
         for i in vkapi.get_all_albums(vk_session):
-            logger.info("Получен доступ к плейлистам пользователя")
+            logger.info("Have access to users playlists")
             all_pl.append(i['title'])
         if len(all_pl) == 0:
             bot.send_message(message.chat.id, f'У тебя нет плейлистов, попробуй позже.')
@@ -627,15 +638,37 @@ def vk_commands(message):
         auth_manager, instruction = spotify.login_inst()
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
-        bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
-        bot.register_next_step_handler(message, spotify_reg_for_vk)
+        if spotify_code:
+            try:
+
+                token_info = auth_manager.get_access_token(spotify_code)
+                bot.send_message(message.chat.id, f'Ты уже вошел в аккаунт \n'
+                                                  f'Введи название плейлиста, который хочешь перенести в Spotify\n'
+                                 , )
+                bot.register_next_step_handler(message, help_vk_t_sp)
+            except SpotifyOauthError:
+                bot.send_message(message.chat.id, instruction, parse_mode='Markdown')
+                bot.register_next_step_handler(message, spotify_reg_for_vk)
+        else:
+            bot.send_message(message.chat.id, instruction, parse_mode='Markdown')
+            bot.register_next_step_handler(message, spotify_reg_for_vk)
     elif message.text == "Перенести в Yandex":
         instruction = yandexapi.instruct()
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
-        bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
-
-        bot.register_next_step_handler(message, yandex_reg_for_vk)
+        if yandex_token:
+            try:
+                Client(yandex_token).init()
+                bot.send_message(message.chat.id, f'Ты уже вошел в аккаунт\n'
+                                                  f'Ответным сообщением введи название плейлиста в Vk, который ты хочешь перенести'
+                                 , )
+                bot.register_next_step_handler(message, vk_to_yandex)
+            except UnauthorizedError:
+                bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
+                bot.register_next_step_handler(message, yandex_reg_for_vk)
+        else:
+            bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
+            bot.register_next_step_handler(message, yandex_reg_for_vk)
     elif message.text == "В главное меню":
         hello_message(message)
 
@@ -658,12 +691,12 @@ def spotify_reg_for_vk(message):
         markup.row('В главное меню')
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова', reply_markup=markup)
-        logger.error('Не получается залогиниться в Spotify')
+        logger.error('Couldnt log into spotify')
         bot.register_next_step_handler(message, yandex_commands)
         return
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    logger.info("Залогинился в Spotify")
+    logger.info("Logged into spotify")
     user_info = sp.current_user()
 
     bot.send_message(message.chat.id, f"Hello {user_info['display_name']}!")
@@ -672,8 +705,36 @@ def spotify_reg_for_vk(message):
     bot.send_message(message.chat.id, f'Выполнен вход в твой Spotify аккаунт.\n'
                                       f'Введи название плейлиста, который хочешь перенести в Spotify\n'
                      , reply_markup=markup)
-    bot.register_next_step_handler(message, vk_to_spotify)
+    bot.register_next_step_handler(message,  help_vk_t_sp)
 
+
+def help_vk_t_sp(message):
+    """Вспомогательная функция для последовательного ввода ссылки и названия плейлиста"""
+    global transfer_link
+    if message.text == "В главное меню":
+        hello_message(message)
+        return
+    name = message.text
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.row('В главное меню')
+
+    try:
+        transfer_link = vkapi.get_album_by_name(message,vk_session, name)
+
+    except vk_api.exceptions.AccessDenied:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.row('В главное меню')
+        bot.send_message(message.chat.id, "Это не твой созданный плейлист, ты обманул", reply_markup=markup)
+        bot.register_next_step_handler(message, vk_commands)
+        logger.warning('No playlist to transfer from Vk to spotify')
+        return
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.row('В главное меню')
+    bot.send_message(message.chat.id, f'Выбери название, которое хочешь  дать новому плейлисту.\n '
+                     ,
+                     reply_markup=markup)
+    bot.register_next_step_handler(message, vk_to_spotify)
 
 def yandex_reg_for_vk(message):
     """Логинится в Yandex"""
@@ -688,9 +749,9 @@ def yandex_reg_for_vk(message):
         bot.send_message(message.chat.id,
                          f'Неверный код, попробуй снова')
         bot.register_next_step_handler(message, spotify_commands)
-        logger.error('Не получается залогиниться в Yandex music')
+        logger.error('Couldnt login into yandex music')
         return
-    logger.info("Залогинился в Yandex music для использования с VK")
+    logger.info("Logged into yandex music for VK")
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     bot.send_message(message.chat.id, f'Выполнен вход в твой Yandex аккаунт.\n '
@@ -714,13 +775,13 @@ def vk_list(message):
         markup.row('В главное меню')
         bot.send_message(message.chat.id, "Это не твой созданный плейлист, ты обманул", reply_markup=markup)
         bot.register_next_step_handler(message, vk_commands)
-        logger.warning('Нет плейлиста Vk с таким названием')
+        logger.warning('Have no Vk playlist with such name')
         return
     except ValueError:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
         bot.send_message(message.chat.id, "Альбом/Плейлист с таким названием не найден.", reply_markup=markup)
-        logger.warning('Нет плейлиста для вывода песен в библиотеке VK')
+        logger.warning('Have no playlists in Vk to show')
     if songs:
         for song in songs:
             logger.warning('Получен доступ к плейлисту Vk')
@@ -748,19 +809,9 @@ def vk_to_spotify(message):
 
                      ,
                      reply_markup=markup)
-    try:
-        transfer_list = vkapi.get_album_by_name(message, vk_session, name)
 
-    except vk_api.exceptions.AccessDenied:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        markup.row('В главное меню')
-        bot.send_message(message.chat.id, "Это не твой созданный плейлист, ты обманул", reply_markup=markup)
-        bot.register_next_step_handler(message, vk_commands)
-        logger.warning('Нет плейлиста для переноса на spotify в библиотеке VK')
-        return
-
-    spotify.search_create_add(transfer_list, name, sp)
-    logger.info('Плейлист был был перенесен с Vk  в Spotify')
+    spotify.search_create_add(transfer_link, name, sp)
+    logger.info('Have transferred a playlist from spotify to vk')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.row('В главное меню')
     bot.send_message(message.chat.id,
@@ -787,16 +838,16 @@ def vk_to_yandex(message):
         markup.row('В главное меню')
         bot.send_message(message.chat.id, "Это не твой созданный плейлист, ты обманул", reply_markup=markup)
         bot.register_next_step_handler(message, vk_commands)
-        logger.warning('Нет плейлиста для переноса на yandex music в библиотеке VK')
+        logger.warning('Have no playlist to transfer from Vk to yandex music')
         return
     except ValueError:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
         bot.send_message(message.chat.id, "Альбом/Плейлист с таким названием не найден.", reply_markup=markup)
-        logger.warning('Нет плейлиста для переноса на spotify в библиотеке VK')
+        logger.warning('Have no playlist with such name to transfer from Vk to yandex music')
 
     not_available = yandexapi.list_to_yandex(name, items_to_yandex, yandex_token)
-    logger.info('Плейлист был был перенесен с Vk  в Yandex music')
+    logger.info('Have transferred playlist from Vk to yandex music')
     file = ''
     if len(not_available) != 0:
         for song in not_available:
