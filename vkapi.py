@@ -4,16 +4,6 @@ import waiting
 
 
 
-def getsongs(session):
-    """Выводит все песни человека"""
-    vkaudiofortracks = VkAudio(session)
-    for track in vkaudiofortracks.get_iter():
-        artist = track['artist']
-        title = track['title']
-
-        print(f"Название: {title}, \t Исполнитель: {artist}")
-
-
 def get_all_albums(session):
     """Выводит все плейлисты пользователя"""
     vk_audio_instance = VkAudio(session)
@@ -28,7 +18,6 @@ def get_album_by_name(message, session, album_name):
     user_id = session.get_api().users.get()[0]['id']
     albums = vk_audio_for_albums.get_albums(user_id)
 
-    print(albums)
     for album in albums:
         if album['title'].lower() == album_name.lower():
             if album:
