@@ -54,7 +54,6 @@ def get_playlists(playlist_name, sp):
                 sing += ', '
         playlist_with_items.append(
             sing + ' - ' + pl['track']['name'])
-    print(playlist_with_items)
     return playlist_with_items
 
 
