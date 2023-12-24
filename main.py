@@ -13,8 +13,9 @@ import yandexapi
 import vkapi
 import logging
 import waiting
+from config import BOT_TOKEN
 
-bot = telebot.TeleBot('None')
+bot = telebot.TeleBot(BOT_TOKEN)
 yandex_token = None
 spotify_code = None
 sp = None
@@ -57,25 +58,9 @@ def main(message):
         instruction = yandexapi.instruct()
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.row('В главное меню')
-        if yandex_token:
-            try:
-                markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-                item_1 = types.KeyboardButton("Создать Yandex плейлист")
-                item_2 = types.KeyboardButton("Получить список песен")
-                item_3 = types.KeyboardButton("Перенести в Spotify")
-                item_4 = types.KeyboardButton("В главное меню")
-                markup.add(item_1, item_2, item_3, item_4)
-                Client(yandex_token).init()
-                bot.send_message(message.chat.id, f'Ты уже вошел в аккаунт\n'
-                                                  f'Что ты хочешь сделать?'
-                                 ,reply_markup=markup )
-                bot.register_next_step_handler(message, yandex_commands)
-            except UnauthorizedError:
-                bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
-                bot.register_next_step_handler(message, yandex_reg)
-        else:
-            bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
-            bot.register_next_step_handler(message, yandex_reg)
+
+        bot.send_message(message.chat.id, instruction, parse_mode='Markdown', reply_markup=markup)
+        bot.register_next_step_handler(message, yandex_reg)
 
     elif message.text == 'Spotify':
         auth_manager, instruction = spotify.login_inst()
@@ -559,13 +544,13 @@ def yandex_to_list(link: str, token, message):
     except ValueError:
         bot.send_message(message.chat.id,
                          f'Ты ввел неверную ссылку, попробуйт снова.\n'
-                         f'Нажми на кнопку "Перенести в spotify и повтори процедуру еще раз')
+                         )
         logger.warning('Invalid link for yandex music')
 
     except:
         bot.send_message(message.chat.id,
                          f'Нет прав для просмотра, попробуй залогиниться снова.\n'
-                         f'Нажми на кнопку "Перенести в spotify и повтори процедуру еще раз')
+                         )
         bot.register_next_step_handler(message, main)
         logger.warning('Have no access to yandex music playlist')
 
@@ -583,7 +568,6 @@ def captcha_handler(captcha):
     return captcha.try_again(key)
 
 
-
 def vk_reg(message):
     global vk_login
     global vk_password
@@ -598,11 +582,16 @@ def vk_reg(message):
                      f'Введи код, присланный на номер телефона или отправь прочерк(-), если двухфакторка не подключена',
                      reply_markup=markup)
     bot.register_next_step_handler(message, two_fa_code_handler)
-    vk_session = vk_api.VkApi(vk_login, vk_password, auth_handler=auth_handler, app_id=2685278)
     try:
+        vk_session = vk_api.VkApi(vk_login, vk_password, auth_handler=auth_handler, app_id=2685278)
         vk_session.auth()
     except vk_api.AuthError as error_msg:
         logger.error('Couldnt log into VK')
+        bot.send_message(message.chat.id,
+                         f'У тебя на аккаунте включилась captha, мы не сможем войти в аккаунт((\n'
+                         f'Попробуй чуть позже'
+                         ,
+                         reply_markup=markup)
         return
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
     item_2 = types.KeyboardButton("Получить список плейлистов")
@@ -613,6 +602,7 @@ def vk_reg(message):
     bot.send_message(message.chat.id, f'Выполнен вход в твой VK аккаунт. Что ты хочешь сделать?',
                      reply_markup=markup)
     bot.register_next_step_handler(message, vk_commands)
+
 
 def two_fa_code_handler(message):
     global two_fa_code
@@ -721,7 +711,7 @@ def spotify_reg_for_vk(message):
     bot.send_message(message.chat.id, f'Выполнен вход в твой Spotify аккаунт.\n'
                                       f'Введи название плейлиста, который хочешь перенести в Spotify\n'
                      , reply_markup=markup)
-    bot.register_next_step_handler(message,  help_vk_t_sp)
+    bot.register_next_step_handler(message, help_vk_t_sp)
 
 
 def help_vk_t_sp(message):
@@ -735,7 +725,7 @@ def help_vk_t_sp(message):
     markup.row('В главное меню')
 
     try:
-        transfer_link = vkapi.get_album_by_name(message,vk_session, name)
+        transfer_link = vkapi.get_album_by_name(message, vk_session, name)
 
     except vk_api.exceptions.AccessDenied:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -749,6 +739,7 @@ def help_vk_t_sp(message):
                      ,
                      reply_markup=markup)
     bot.register_next_step_handler(message, vk_to_spotify)
+
 
 def yandex_reg_for_vk(message):
     """Логинится в Yandex"""

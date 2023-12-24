@@ -1,10 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth, SpotifyOauthError
 import os
-
-SPOTIPY_CLIENT_ID = None
-SPOTIPY_CLIENT_SECRET = None
-SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:8080'
+from config import SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI
 SPOTIPY_SCOPE = 'playlist-read-collaborative playlist-read-private playlist-modify-public playlist-modify-private'
 
 def login_inst():
